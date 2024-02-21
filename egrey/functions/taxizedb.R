@@ -2,7 +2,7 @@
 #'
 #' @param x named list as output by \code{taxizedb::classification()}
 #' @return a tibble with a prepended \code{species} variable for each element of \code{x}
-reform_taxized = function(x){
+reform_classification = function(x){
   dummy = dplyr::tibble(name = NA_character_, rank = NA_character_, id = NA_character_)
   lapply(names(x),
     function(sp){
@@ -22,7 +22,7 @@ reform_taxized = function(x){
 #' @param ranks the order ranks to tally
 #' @param sep char, the character separator used to bind \code{name} and \code{id}
 #' @return data frame (tibble) of ranks by species
-tally_taxized = function(x, 
+tabulate_classification = function(x, 
   ranks = c("superkingdom", "kingdom", "phylum", "class", 
             "order", "family", "genus", "species"),
             sep = "_"){

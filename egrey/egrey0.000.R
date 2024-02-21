@@ -24,7 +24,7 @@ main = function(cfg = refdbtools::read_configuration("input/egrey0.000.yaml"),
   species_list = readr::read_csv(cfg$species_list$filename, col_types= "c") |>
     rlang::set_names(cfg$species_list$colname)
     
-  order_list = readr::read_csv(cfg$order_list$filename)
+  order_list = readr::read_csv(cfg$order_list$filename, col_types = "ccccccc")
   
   species_list_dedup <- unique(species_list$search_name)
   
@@ -40,11 +40,14 @@ main = function(cfg = refdbtools::read_configuration("input/egrey0.000.yaml"),
     readr::read_csv(taxonomies_cls_filename, col_types = "cccc")
     } else {
       taxizedb::classification(species_list_dedup, db="ncbi") |>
-        reform_taxized()
+        reform_classification() |>
+        dplyr::mutate(name = gsub(".", "", .data$name, fixed = TRUE)) |>
         readr::write_csv(taxonomies_cls_filename)
-    }
-    taxonomies_cls$name = sub(".", "", taxonomies_cls$name, fixed = TRUE)
-    taxa_df = tally_taxized(taxonomies_cls)
+    } 
+  
+  taxa_df = taxonomies_cls |>
+    dplyr::mutate(species = factor(.data$species, levels = species_list_dedup)) |>
+    tabulate_classification()
     
     
     
