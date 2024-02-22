@@ -19,7 +19,7 @@ main = function(cfg = refdbtools::read_configuration("input/egrey0.000.yaml"),
     dplyr::filter(Locus %in% cfg$locus)
   
   search_terms = mt_search_terms(target_locus_synonyms, 
-    modifier = cfg$entrez$search$search_modifier)
+    modifier = cfg$entrez$mt_search$search_modifier)
     
   species_list = readr::read_csv(cfg$species_list$filename, col_types= "c") |>
     rlang::set_names(cfg$species_list$colname)
@@ -49,8 +49,21 @@ main = function(cfg = refdbtools::read_configuration("input/egrey0.000.yaml"),
     dplyr::mutate(species = factor(.data$species, levels = species_list_dedup)) |>
     tabulate_classification()
     
+  a01_NAMES = dplyr::left_join(species_list, taxa_df,  by = dplyr::join_by(search_name == tax_query))
+  no_species = is.na(a01_NAMES$species)
+  a01_NAMES_missing = a01_NAMES |>
+    dplyr::filter(no_species)  |>
+    readr::write_csv("data/a01_NAMES_withoutTaxonomy.csv.gz")
+  a01_NAMES = a01_NAMES |>
+    dplyr::filter(!no_species) |>
+    readr::write_csv("data/a01_NAMES_wTaxonomy.csv.gz")
     
+  orders_missing = order_list |>
+    dplyr::filter(!(order %in% a01_NAMES$order))
+  
+  
     
+  return(0)
 } # end of main
 
 args = commandArgs(trailingOnly = TRUE)
