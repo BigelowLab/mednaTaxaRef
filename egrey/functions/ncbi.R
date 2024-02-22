@@ -1,30 +1,142 @@
-search_oder = function(x, cfg){
+# for each row of orders_missing
+#   species_ids_ls = series of codes
+#   if (the first code is NA) return NULL
+#   if (the length of codes is <= 3)
+#     for each code
+#       mitogenomes = search1()
+#       if (!error)
+#         if (one or more returned mitogenomes)
+#           mito_id = sample one mitogenomes$id
+#           assemble and return df
+#       endif else 
+#         targets = search2()
+#         if (!error)
+#           return
+#   else if (the length of codes is > 3)
+#     species_ids = randomize the codes
+#     finds = 0
+#     ss = list()
+#     for each species_ids
+#       mitogenomes = search3()
+#       if (!error)
+#          mito_id <- sample(mitogenomes$ids,1)
+#          append df to ss
+#          increment finds
+#       else
+#         targets = search4()
+#         if (!error)
+#           append df to ss
+#           increment finds
+#     until finds == 3
+#     return df
+    
+search_order_missing = function(x, cfg, 
+  target_search_term = "AND (COI OR COX1 OR cox1 OR CO1 OR COXI OR cytochrome c oxidase subunit I OR COX-I OR coi OR MT-CO1 OR mt-Co1 OR mt-co1)",
+  verbose = FALSE){
+  
+  keep = c("superkingdom", "kingdom", "phylum", "class", "order")
   
   search_order_one = function(tbl, key){
-    
-    species_ids_ls <- strsplit(tbl$spp_list, ";", fixed = TRUE)
-    if (is.na(species_ids_list[1])) return(NULL)
-    
-    ss = lapply(species_ids_ls,
-      function(id){
-        search_name = paste0("txid", id, "[Organism]")
-        term = paste(search_name, "AND mitochondrion[TITL] AND complete genome[TITL]")
-        mitogenomes <- try(rentrez::entrez_search(db=cfg$entrez$order_search$datase, 
-                                                  term = term, 
-                                                  retmax=cfg$entrez$order_search$retmax1))
-        if (inherits(mitogenomes, "try-error")){
-          # fail?  try another way?
-          targets <- try(rentrez::entrez_search(db="nucleotide", 
-                                                term = paste(search_name, target_locus_searchterm, collapse=" "), retmax=999999))
-        } else {
-          
-        } # try-error?
-      })
-    
-    
+    if (verbose) cat("[operating upon]", substring(tbl$full_branch,1,40), "\n")
+    species_ids_ls <- strsplit(tbl$spp_list, ";", fixed = TRUE)[[1]]
+    if (is.na(species_ids_ls[1])) return(NULL)
+    ss = list()
+    if (length(species_ids_ls) <= 3){
+      species_ids = species_ids_ls
+      ss = lapply(species_ids_ls,
+        function(id){
+          search_name = paste0("txid", id, "[Organism]")
+          term1 = paste(search_name, "AND mitochondrion[TITL] AND complete genome[TITL]")
+          mitogenomes <- try(rentrez::entrez_search(db=cfg$entrez$order_search1$database, 
+                                                    term = term1, 
+                                                    retmax=cfg$entrez$order_search1$retmax,
+                                                    use_history = TRUE))
+          if (!inherits(mitogenomes, "try-error")){
+            if (length(mitogenomes$ids) > 0){  
+              mito_id <- sample(as.character(mitogenomes$ids),1) #choose a random mitogenome for this species
+              r <- dplyr::select(dplyr::all_of(keep)) |>
+                dplyr::mutate(
+                  species_id = id, 
+                  ids_mitogenome = mito_id, 
+                  ids_target = NA_character_)
+              Sys.sleep(cfg$entrez$order_search1$sleep)
+              return(r)
+            } else {
+              term2 = paste(search_name, target_search_term, collapse = " ")
+              targets <- try(rentrez::entrez_search(db = cfg$entrez$order_search2$database, 
+                                                    term = term2, 
+                                                    retmax = cfg$entrez$order_search2$retmax,
+                                                    use_history = TRUE))
+                if (!inherits(targets, "try-error")){
+                  if (length(targets$id) > 0){
+                    target_id <- sample(as.character(targets$ids),1)
+                    r <- dplyr::select(dplyr::all_of(keep)) |>
+                      dplyr::mutate(
+                        species_id = id, 
+                        ids_mitogenome = NA_character_, 
+                        ids_target = target_id)
+                    Sys.sleep(cfg$entrez$order_search2$sleep)
+                    return(r)
+                  }
+                }
+            }  # try targets
+          } # mitogenome error?
+        }) # lapply over species_ids_ls
+     } else {  # length of species_ids_ls > 3
+       species_ids <- sample(as.character(species_ids_ls), length(species_ids_ls), replace = FALSE) 
+       finds = 0
+       finds_max = 3
+       ss = vector(mode = "list", length = finds_max)
+       for (id in species_ids){
+         search_name <- paste0("txid",id,"[Organism]")
+         term3 = paste(search_name, "AND mitochondrion[TITL] AND complete genome[TITL]")
+         mitogenomes <- tryCatch(rentrez::entrez_search(db = cfg$entrez$order_search3$database, 
+                                                        term = term3, 
+                                                        retmax = cfg$entrez$order_search3$retmax,
+                                                        use_history = TRUE))
+         if (!inherits(mitogenomes, "try-error")){
+           if (length(mitogenomes$ids)>0) {
+             mito_id <- sample(as.character(mitogenomes$ids),1)
+             r <- dplyr::select(dplyr::all_of(keep)) |>
+               dplyr::mutate(
+                 species_id = id, 
+                 ids_mitogenome = mito_id, 
+                 ids_target = NA_character_)
+             finds=finds+1
+             ss[finds] = r
+             Sys.sleep(cfg$entrez$order_search3$sleep)
+           } else {
+             term4 = paste(search_name, target_search_term, collapse = " ")
+             targets = tryCatch(rentrez::entrez_search(db = cfg$entrez$order_search4$database, 
+                                                       term = term4, 
+                                                       retmax = cfg$entrez$order_search4$retmax,
+                                                       use_history = TRUE))
+             if (length(targets$ids)>0) {
+               target_id = sample(as.character(targets$ids), 1) 
+               r <- dplyr::select(dplyr::all_of(keep)) |>
+                 dplyr::mutate(
+                   species_id = id, 
+                   ids_mitogenome = NA_character_, 
+                   ids_target = target_id)
+               finds = finds + 1
+               ss[finds] = r
+               Sys.sleep(cfg$entrez$order_search4$sleep)             
+            }
+           
+           } # mito or target?
+         } # error?
+         if (finds >= 3) break
+       } # id loop
+       
+     } # search_order_one
+     
+     
+     r = dplyr::bind_rows(ss)
+     if (verbose) cat("  found", nrow(r), "thingies\n")
   }
   
-  y = dplyr::rowwise(x) |>
-    dplyr::group_map(search_order_one, .keep = TRUE)
+  dplyr::rowwise(x) |>
+    dplyr::group_map(search_order_one, .keep = TRUE) |>
+    dplyr::bind_rows()
   
-} # search_order
+} # search_order_missing

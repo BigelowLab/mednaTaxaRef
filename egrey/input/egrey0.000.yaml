@@ -44,8 +44,19 @@ entrez:
   mt_search:
     search_modifier: "[TITL]"
     db: nucleotide
-  order_search:
-    search_modifier_pattern: "txid%s[Organism] AND mitochondrion[TITL] AND complete genome[TITL]"
-    retmax1: 9999
-    retmax2: 999999
+  order_search1:
+    db: nucleotide
+    retmax: 9999
+    sleep: 1
+  order_search2:
+    db: nucleotide
+    retmax: 999999
+    sleep: 1
+  order_search3:
+    db: nucleotide
+    retmax: 9999
+    sleep: 1
+  order_search4:
+    db: nucleotide
+    retmax: 999999
     sleep: 1

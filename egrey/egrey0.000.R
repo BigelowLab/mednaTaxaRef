@@ -61,7 +61,7 @@ main = function(cfg = refdbtools::read_configuration("input/egrey0.000.yaml"),
   orders_missing = order_list |>
     dplyr::filter(!(order %in% a01_NAMES$order))
   
-  
+    x = orders_missing
     
   return(0)
 } # end of main
