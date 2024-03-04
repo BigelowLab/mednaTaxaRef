@@ -1,5 +1,9 @@
 #' Reformat a \code{taxizedb::classification()} output into a tibble.
 #'
+#' For each request \code{taxizedb::classification()} it returns a list element
+#' what has either three variable data frame (name, rank and id) or NA (instead of
+#' a friendlier empty data frame or NULL)
+#'
 #' @param x named list as output by \code{taxizedb::classification()}
 #' @return a tibble with a prepended \code{species} variable for each element of \code{x}
 reform_classification = function(x){

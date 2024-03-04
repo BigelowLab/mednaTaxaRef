@@ -1,3 +1,11 @@
+# First pass is to search for taxonomies for a uder provided species list
+#
+# Some taxonomies mayeb be unkown at `order` level, so we try to fill those in 
+#  with search_order_missing()
+#   
+
+
+
 source("setup.R")
 data(mtDNAterms)
 
@@ -33,7 +41,7 @@ main = function(cfg = refdbtools::read_configuration("input/egrey0.000.yaml"),
     overwrite = cfg$tax_db$ncbi$overwrite) 
   
   # this uses the downloaded db by default and mines a list
-  # here we convert it to a data frame whihc we can operate upon by group (species in this case)
+  # here we convert it to a data frame which we can operate upon by group (species in this case)
   # I'm saving a copy here, in anticipation of needing restarts later (maybe just for development)
   taxonomies_cls_filename = file.path(cfg$output_folder, sprintf("%s-taxonomies_cls.csv.gz", cfg$version))
   taxonomies_cls <- if (file.exists(taxonomies_cls_filename)){
@@ -61,7 +69,7 @@ main = function(cfg = refdbtools::read_configuration("input/egrey0.000.yaml"),
   orders_missing = order_list |>
     dplyr::filter(!(order %in% a01_NAMES$order))
   
-    x = orders_missing
+  order_seqs = search_order_missing(orders_missing, cfg, verbose = TRUE)
     
   return(0)
 } # end of main

@@ -29,15 +29,28 @@
 #           increment finds
 #     until finds == 3
 #     return df
-    
+
+#' Find up to 3 mitogenomes or target sequences for missing orders.   
+#'
+#' @param x data frame, the listing of orders that were missing 
+#' @param cfg list, the configuration list
+#' @param target_search_term str, pattern used for \code{term} when the initial search for the order fails
+#' @param verbose logical, if TRUE output helpful messages (for development really)
+#' @return a data frame (tibble) of search results
 search_order_missing = function(x, cfg, 
   target_search_term = "AND (COI OR COX1 OR cox1 OR CO1 OR COXI OR cytochrome c oxidase subunit I OR COX-I OR coi OR MT-CO1 OR mt-Co1 OR mt-co1)",
   verbose = FALSE){
   
   keep = c("superkingdom", "kingdom", "phylum", "class", "order")
+  # we add and id for housekeeping
+  x = dplyr::mutate(x, id = seq_len(nrow(x)))
+  NX = nrow(x)
+  
+  # this is the function that accpts 1 row of \code{x} and attempts to more fully populate
   
   search_order_one = function(tbl, key){
-    if (verbose) cat("[operating upon]", substring(tbl$full_branch,1,40), "\n")
+    if (verbose) cat("[search_order_missing]", sprintf("%i of %i", tbl$id, NX), 
+                      substring(tbl$full_branch,1,60), "...\n")
     species_ids_ls <- strsplit(tbl$spp_list, ";", fixed = TRUE)[[1]]
     if (is.na(species_ids_ls[1])) return(NULL)
     ss = list()
@@ -68,8 +81,8 @@ search_order_missing = function(x, cfg,
                                                     retmax = cfg$entrez$order_search2$retmax,
                                                     use_history = TRUE))
                 if (!inherits(targets, "try-error")){
-                  if (length(targets$id) > 0){
-                    target_id <- sample(as.character(targets$ids),1)
+                  if (length(targets[["id"]]) > 0){
+                    target_id <- sample(as.character(targets[["id"]]),1)
                     r <- dplyr::select(dplyr::all_of(keep)) |>
                       dplyr::mutate(
                         species_id = id, 
@@ -90,7 +103,7 @@ search_order_missing = function(x, cfg,
        for (id in species_ids){
          search_name <- paste0("txid",id,"[Organism]")
          term3 = paste(search_name, "AND mitochondrion[TITL] AND complete genome[TITL]")
-         mitogenomes <- tryCatch(rentrez::entrez_search(db = cfg$entrez$order_search3$database, 
+         mitogenomes <- try(rentrez::entrez_search(db = cfg$entrez$order_search3$database, 
                                                         term = term3, 
                                                         retmax = cfg$entrez$order_search3$retmax,
                                                         use_history = TRUE))
@@ -107,12 +120,12 @@ search_order_missing = function(x, cfg,
              Sys.sleep(cfg$entrez$order_search3$sleep)
            } else {
              term4 = paste(search_name, target_search_term, collapse = " ")
-             targets = tryCatch(rentrez::entrez_search(db = cfg$entrez$order_search4$database, 
+             targets = try(rentrez::entrez_search(db = cfg$entrez$order_search4$database, 
                                                        term = term4, 
                                                        retmax = cfg$entrez$order_search4$retmax,
                                                        use_history = TRUE))
-             if (length(targets$ids)>0) {
-               target_id = sample(as.character(targets$ids), 1) 
+             if (length(targets[["id"]])>0) {
+               target_id = sample(as.character(targets[["id"]]), 1) 
                r <- dplyr::select(dplyr::all_of(keep)) |>
                  dplyr::mutate(
                    species_id = id, 
@@ -132,7 +145,7 @@ search_order_missing = function(x, cfg,
      
      
      r = dplyr::bind_rows(ss)
-     if (verbose) cat("  found", nrow(r), "thingies\n")
+     if (verbose) cat("  found", nrow(r), "records\n")
   }
   
   dplyr::rowwise(x) |>
@@ -140,3 +153,11 @@ search_order_missing = function(x, cfg,
     dplyr::bind_rows()
   
 } # search_order_missing
+
+
+
+
+#' Get taxonomy for each species representative for the missing orders.
+taxize_order_missing = function(){
+  
+} # taxize order missing
