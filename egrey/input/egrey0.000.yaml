@@ -1,10 +1,13 @@
 version: egrey0.000
+verbose: yes
 locus: COI
 species_list: 
   filename: input/MaineSpeciesList_Clean-EKG.csv
   colname: search_name
+  subsample: 10   # for development or ~ to use full list
 order_list:
   filename: input/MetazoaSpeciesByOrder_2023-09-19.csv
+  subsample: 10  # for development or ~ to use full list
 output_folder: data
 tax_db:
   ncbi: 
@@ -58,5 +61,11 @@ entrez:
     sleep: 1
   order_search4:
     db: nucleotide
+    retmax: 9999
+    sleep: 1
+  species_search:
+    db: nucleotide
+    search_modifier1: "[ORGN]"
+    search_modifier2: "AND mitochondrion[TITL] AND complete genome[TITL]"
     retmax: 9999
     sleep: 1
