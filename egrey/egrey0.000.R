@@ -82,12 +82,20 @@ main = function(cfg = refdbtools::read_configuration("input/egrey0.000.yaml"),
     readr::write_csv("data/a01_NAMES_wTaxonomy.csv.gz")
     
   
-  charlier::info("searching with entrez_search for cases where order is missing")
-  orders_missing = order_list |>
-    dplyr::filter(!(order %in% a01_NAMES$order))
-    # this gets us through lines 253 in Erin's
-  #order_seqs = search_order_missing(orders_missing, cfg, verbose = TRUE)
-    
+  #charlier::info("searching with entrez_search for cases where order is missing")
+  #orders_missing = order_list |>
+  #  dplyr::filter(!(order %in% a01_NAMES$order))
+  #  # this gets us through lines 253 in Erin's
+  
+  
+  # determined by cfg$locus - make programmatic
+  #order_seqs = read_orderseqs("data/orderseqs/OrderSeqs_Metazoan-COI.csv")
+  
+  # skip to Erin's 303
+  searchterms = paste(a01_NAMES$search_name, cfg$entrez$species_search$search_modifier1)
+  seqs = sequence_search_and_fetch(searchterms)
+  searchterms = paste(search_pattern, cfg$entrez$species_search$search_modifier1)
+  seqs_mito = sequence_search_and_fetch(searchterms)
   
     
     

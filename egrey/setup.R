@@ -1,5 +1,5 @@
 packages = list(
-  CRAN = c("rlang", "taxizedb", "rentrez", "AnnotationBustR", "ape", "ggplot2", 
+  CRAN = c("rlang", "taxizedb", "rentrez", "AnnotationBustR", "ape", "ggplot2", "restez",
            "argparser", "BiocManager", "remotes", "yaml", "dplyr", "readr", "tidyr"),
   bioc = c("Biostrings", "genbankr"),
   github = c("charlier" = "BigelowLab", "refdbtools" = "BigelowLab")
@@ -25,6 +25,14 @@ suppressPackageStartupMessages({
   for (p in packages$bioc) library(p, character.only = TRUE)
   for (p in names(packages$github)) library(p, character.only = TRUE)
 })
+
+RESTEZ_ROOT = "/mnt/storage/data/edna/refdb/restez"
+paths = c("invertebrate" = "invertebrate",
+          "plant" = "plant_with_fungi_algae",
+          "vertebrate" = "other_vertebrate") 
+RESTEZ_PATHS = sapply(names(paths), function(p) file.path(RESTEZ_ROOT, paths[p]) )
+  
+
 
 # source functions
 ff = list.files("functions", full.names = TRUE, pattern = "^.*\\.R$")
