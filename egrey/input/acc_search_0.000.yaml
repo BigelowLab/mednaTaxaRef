@@ -1,0 +1,23 @@
+version: acc_search_0.000
+verbose: yes
+species_list: 
+  filename: input/MaineSpeciesList_Clean-EKG.csv
+  colname: search_name
+  subsample: 10   # for development or ~ to use full list
+output_folder: data
+fasta:
+  width: 70
+  dump: yes
+  separate: yes
+search:
+  dbpath: /mnt/storage/data/edna/refdb/restez
+  dbs:
+    - invertebrate
+    - plant_with_fungi_algae
+    - other_vertebrate
+  mito:
+    modifier: "[TITL]"
+  species:
+    modifier1: "[ORGN]"
+    modifier2: "AND mitochondrion[TITL] AND complete genome[TITL]"
+    target_modifier: "AND (COI OR COX1 OR cox1 OR CO1 OR COXI OR cytochrome c oxidase subunit I OR COX-I OR coi OR MT-CO1 OR mt-Co1 OR mt-co1)"
