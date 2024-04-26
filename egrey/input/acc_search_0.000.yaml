@@ -12,9 +12,9 @@ fasta:
 search:
   dbpath: /mnt/storage/data/edna/refdb/restez
   dbs:
-    - invertebrate
-    - plant_with_fungi_algae
-    - other_vertebrate
+     - invertebrate
+     - plant
+     - vertebrate
   mito:
     modifier: "[TITL]"
   species:

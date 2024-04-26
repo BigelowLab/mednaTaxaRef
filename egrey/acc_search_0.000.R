@@ -13,6 +13,8 @@ ids_as_table = function(x){
 
 
 
+# https://www.ncbi.nlm.nih.gov/nuccore/MG512799
+
 main = function(cfg){
   
   charlier::info("starting version %s", cfg$version)
@@ -50,6 +52,9 @@ main = function(cfg){
   
   x = lapply(cfg$search$dbs,
     function(db_name){
+      
+      charlier::info("working on %s", db_name)
+      
       db_path = file.path(cfg$search$dbpath, db_name)
       restez::restez_path_set(db_path)
       if (!restez::restez_ready()){
@@ -61,36 +66,37 @@ main = function(cfg){
         #paste(cfg$search$species$modifier2) |>
         #paste(cfg$search$species$target_modifier)
       
-      ids = ncbi_accession_search(search_term)
-      
-    }) |>
-    merge_ids() |>
-    rlang::set_names(species_list[[cfg$species_list$colname]]) 
+      charlier::info("searching for accession ids")
+      ids = ncbi_accession_search(search_term) |>
+          rlang::set_names(species_list[[cfg$species_list$colname]]) 
+      if (cfg$fasta$dump){   
+        ids_as_table(ids) |>
+            readr::write_csv(file.path(cfg$output_folder, sprintf("%s-%s-ids.csv.gz", cfg$version, db_name)))
+      }
+      charlier::info("getting fastas")    
+      ff = sapply(ids, restez::gb_fasta_get, width = cfg$fasta$width, simplify = FALSE)|>
+        rlang::set_names(species_list[[cfg$species_list$colname]])
+      if (cfg$fasta$dump){
+        charlier::info("saving fastas")
+        fname = sprintf("%s-%s.fasta.gz", cfg$version, db_name)
+        refdbtools::dump_fasta(ff, separate = FALSE, outpath = cfg$output_folder, filename = fname)
+      }
+      list(ids = ids, seq = ff)
+    }) 
     
     
-    ids = ids_as_table(x) |>
-    readr::write_csv(file.path(cfg$output_folder, sprintf("%s-ids.csv.gz", cfg$version)))
-    
-    ff = sapply(x, restez::gb_fasta_get, width = cfg$fasta$width, simplify = FALSE)
-    if (cfg$fasta$dump){
-      outpath = file.path(cfg$output_folder, sprintf("%s_fasta"), cfg$version)
-      if (!dir.exists(outpath)) ok = dir.create(outpath, recursive = TRUE)
-        # we need to make a table first - grrrr
-    }
-  
   
   return(1)
 }
 
 
-
 source("setup.R")
-data(mtDNAterms)
 args = commandArgs(trailingOnly = TRUE)
 cfgfile = if (length(args) <= 0)  "input/acc_search_0.000.yaml" else args[1]
 cfg = refdbtools::read_configuration(cfgfile)
 charlier::start_logger(filename = file.path(cfg$output_folder, sprintf("acc_search_log-%s", cfg$version)))
 if (!interactive()){
   ok = main(cfg)
+  charlier::info("done!")
   quit(save = "no", status = ok)
 }

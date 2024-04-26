@@ -1,3 +1,5 @@
+*.ER
+*.OU
 .Rproj.user
 .Rhistory
 .RData
