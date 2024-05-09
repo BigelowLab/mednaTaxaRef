@@ -21,7 +21,8 @@ main = function(cfg){
     
   species_list = readr::read_csv(cfg$species_list$filename, col_types= "c") |>
     rlang::set_names(cfg$species_list$colname) |>
-    dplyr::distinct()
+    dplyr::distinct() |>
+    dplyr::mutate(db = NA_character_)
     
   if (("subsample" %in% names(cfg$species_list)) && !is.null(cfg$species_list$subsample)) {
     charlier::info("subsampling the input species_list for development")
@@ -30,6 +31,20 @@ main = function(cfg){
     set.seed(cfg$species_list$subsample)
     species_list = dplyr::slice_sample(species_list, n = cfg$species_list$subsample, replace = FALSE)
   }
+  
+  search_term = paste0(species_list[[cfg$species_list$colname]], cfg$search$species$modifier1) #|>
+    #paste(cfg$search$species$modifier2) |>
+    #paste(cfg$search$species$target_modifier)
+  
+  charlier::info("searching for accession ids")
+  ids = ncbi_accession_search(search_term) |>
+      rlang::set_names(species_list[[cfg$species_list$colname]]) 
+  if (cfg$fasta$dump){   
+    ids_as_table(ids) |>
+        readr::write_csv(file.path(cfg$output_folder, sprintf("%s-%s-ids.csv.gz", cfg$version, db_name)))
+  }
+  
+  
   
   # Given a list with one or more named vectors of ids
   # @param x a list with one or more elements of vectors of ids
@@ -62,31 +77,32 @@ main = function(cfg){
         return(NULL)
       }
       
-      search_term = paste0(species_list[[cfg$species_list$colname]], cfg$search$species$modifier1) #|>
-        #paste(cfg$search$species$modifier2) |>
-        #paste(cfg$search$species$target_modifier)
-      
-      charlier::info("searching for accession ids")
-      ids = ncbi_accession_search(search_term) |>
-          rlang::set_names(species_list[[cfg$species_list$colname]]) 
-      if (cfg$fasta$dump){   
-        ids_as_table(ids) |>
-            readr::write_csv(file.path(cfg$output_folder, sprintf("%s-%s-ids.csv.gz", cfg$version, db_name)))
+      ix = is.na(species_list$db)
+      if (!any(ix)){
+        message("no more species to search for")
+        return(NULL)
       }
+      
       charlier::info("getting fastas")    
-      ff = sapply(ids, restez::gb_fasta_get, width = cfg$fasta$width, simplify = FALSE)|>
+      ff = sapply(ids[ix], restez::gb_fasta_get, width = cfg$fasta$width, simplify = FALSE)|>
         rlang::set_names(species_list[[cfg$species_list$colname]])
       if (cfg$fasta$dump){
         charlier::info("saving fastas")
         fname = sprintf("%s-%s.fasta.gz", cfg$version, db_name)
         refdbtools::dump_fasta(ff, separate = FALSE, outpath = cfg$output_folder, filename = fname)
       }
+      
+      iy = length(ff) != 0
+      if (any(iy)) species_list$db[which(ix)[iy]] <- db_name
+      
       list(ids = ids, seq = ff)
     }) 
     
     
+    # now what is to be done with the unmatched ids?
+    unmatched = is.na(species_list$db)
   
-  return(1)
+  return(species_list)
 }
 
 
