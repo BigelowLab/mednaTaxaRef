@@ -71,7 +71,25 @@ tabulate_classification = function(x,
     dplyr::rename(tax_query = "species") |>
     dplyr::group_by(tax_query) |>
     dplyr::group_map(tally_one, .keep = TRUE, dummy = dummy) |>
-    dplyr::bind_rows()
-    
-              
+    dplyr::bind_rows()            
 }
+
+#' Split a table with taxa_id into 2-column taxa, id
+#'
+#' @param x a table such as produced by tabulate_classification
+#' @param taxa char, the taxa to split
+#' @ param sep char, the character used to separate taxa_id
+#' @return a wider table with IDs split from taxa
+split_taxa_ids = function(x,
+  taxa = c("superkingdom", "kingdom", "phylum", "class", "order", "family", "genus", "species"),
+  sep = "_"){
+    
+    for (nm in taxa){
+      x = tidyr::separate(x,
+        dplyr::any_of(nm),
+        sep = sep, 
+        into = c(nm, paste0(nm, "_id")))
+    }
+    
+   x 
+  }

@@ -1,0 +1,22 @@
+version: taxizer.000
+verbose: true
+input:
+  filename: input/MaineSpeciesList_Clean-EKG.csv
+  name: source_binomial
+  sentence_case: yes
+  deduplicate: yes
+  subsample: ~   # for development or ~ to use full list
+tax_db:
+  db: ncbi
+  overwrite: true
+  taxa:
+  - superkingdom
+  - kingdom
+  - phylum
+  - class
+  - order
+  - family
+  - genus
+  - species
+output:
+  path: data/taxa

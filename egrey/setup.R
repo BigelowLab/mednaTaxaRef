@@ -1,6 +1,6 @@
 packages = list(
-  CRAN = c("rlang", "taxizedb", "rentrez", "AnnotationBustR", "ape", "ggplot2", "restez",
-           "argparser", "BiocManager", "remotes", "yaml", "dplyr", "readr", "tidyr"),
+  CRAN = c("rlang", "taxize", "taxizedb", "rentrez", "AnnotationBustR", "ape", "ggplot2", "restez",
+           "argparser", "BiocManager", "remotes", "yaml", "stringr", "dplyr", "readr", "tidyr"),
   bioc = c("Biostrings", "genbankr"),
   github = c("charlier" = "BigelowLab", "refdbtools" = "BigelowLab")
 )
