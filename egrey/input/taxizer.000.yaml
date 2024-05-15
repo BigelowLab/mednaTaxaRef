@@ -8,7 +8,9 @@ input:
   subsample: ~   # for development or ~ to use full list
 tax_db:
   db: ncbi
-  overwrite: true
+  overwrite: false
+  chunk: 100
+  sleep: 2
   taxa:
   - superkingdom
   - kingdom

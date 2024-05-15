@@ -27,10 +27,29 @@ main = function(cfg){
   }
 
   charlier::info("searching taxonomy")
-  r = taxizedb::classification(x[[cfg$input$name]], db=cfg$tax_db$db) |>
-      reform_classification() |>
-      tabulate_classification() |>  
-      readr::write_csv(file.path(cfg$output$path, sprintf("%s-taxa.csv.gz")))
+  
+  # here we break into the specified chunk size
+  steps = ceiling(nrow(x)/cfg$tax_db$chunk)
+  index = rep(seq_len(steps), each = cfg$tax_db$chunk, length = nrow(x))
+  
+  r <- x[[cfg$input$name]] |>
+    dplyr::mutate(index_ = index) |>
+    dplyr::group_by(index_) |>
+    dplyr::group_map(
+      function(tbl, key){
+        Sys.sleep(cfg$tax_db$sleep)
+        taxizedb::classification(tbl, db=cfg$tax_db$db) |>
+              reform_classification() |>
+              tabulate_classification()
+      }) |>
+    dplyr::bind_rows()|>  
+      readr::write_csv(file.path(cfg$output$path, sprintf("%s-taxa.csv.gz", cfg$input$name)))
+  
+  
+  #r = taxizedb::classification(x[[cfg$input$name]], db=cfg$tax_db$db) |>
+  #    reform_classification() |>
+  #    tabulate_classification() |>  
+  #    readr::write_csv(file.path(cfg$output$path, sprintf("%s-taxa.csv.gz")))
   
   return(0)
 }
@@ -50,5 +69,5 @@ db_tax_NCBI = taxizedb::db_download_ncbi(verbose = cfg$verbose,
 
 if (!interactive()){
   ok = main(cfg)
-  quit(save "no", status = ok)
+  quit(save = "no", status = ok)
 }
