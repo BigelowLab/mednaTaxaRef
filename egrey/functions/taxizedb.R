@@ -25,11 +25,13 @@ reform_classification = function(x){
 #' @param x data frame (tibble), the output of \code{reform_taxized}
 #' @param ranks the order ranks to tally
 #' @param sep char, the character separator used to bind \code{name} and \code{id}
+#' @param split_id, logical, if TRUE split the ID from the rank values
 #' @return data frame (tibble) of ranks by species
 tabulate_classification = function(x, 
   ranks = c("superkingdom", "kingdom", "phylum", "class", 
             "order", "family", "genus", "species"),
-            sep = "_"){
+            sep = "_",
+            split_id = TRUE){
               
    dummy = dplyr::tibble(
      tax_query = NA_character_,
@@ -40,7 +42,7 @@ tabulate_classification = function(x,
      order = NA_character_,
      family = NA_character_,
      genus = NA_character_,
-     species = NA_character_,
+     species = NA_character_
      )  
               
    tally_one = function(tbl, key, dummy = NULL){
@@ -66,13 +68,29 @@ tabulate_classification = function(x,
    
    
    
-   x |>
+   x = x |>
     dplyr::mutate(value = paste(.data$name, .data$id, sep = sep)) |>
     dplyr::rename(tax_query = "species") |>
     dplyr::group_by(tax_query) |>
     dplyr::group_map(tally_one, .keep = TRUE, dummy = dummy) |>
-    dplyr::bind_rows()            
+    dplyr::bind_rows()  
+  
+  if (split_id){
+    x = tidyr::separate_wider_delim(x,
+      cols = dplyr::all_of(ranks),
+      delim = sep,
+      names_sep = sep,
+      cols_remove = TRUE,
+      )
+    nm = names(x)
+    nm = gsub("_1", "", nm, fixed = TRUE) 
+    nm = gsub("_2", "_id", nm, fixed = TRUE)
+    names(x) <- nm
+  }  
+   
+  x          
 }
+
 
 #' Split a table with taxa_id into 2-column taxa, id
 #'
