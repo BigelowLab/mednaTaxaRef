@@ -76,16 +76,7 @@ tabulate_classification = function(x,
     dplyr::bind_rows()  
   
   if (split_id){
-    x = tidyr::separate_wider_delim(x,
-      cols = dplyr::all_of(ranks),
-      delim = sep,
-      names_sep = sep,
-      cols_remove = TRUE,
-      )
-    nm = names(x)
-    nm = gsub("_1", "", nm, fixed = TRUE) 
-    nm = gsub("_2", "_id", nm, fixed = TRUE)
-    names(x) <- nm
+    x =split_taxa_ids(x)
   }  
    
   x          
