@@ -7,7 +7,9 @@
 
 main = function(cfg){
   charlier::info("starting version %s", cfg$version)
-  x = readr::read_csv(cfg$input$filename, show_col_types = FALSE)
+  x = readr::read_csv(cfg$input$filename, show_col_types = FALSE) |>
+     dplyr::select(dplyr::all_of(cfg$input$name))
+  charlier::info("input has %i records",nrow(x))
   
   if (cfg$input$sentence_case){
     charlier::info("making sentence case")
@@ -18,7 +20,7 @@ main = function(cfg){
     n = nrow(x)
     ix = duplicated(x[[cfg$input$name]])
     x <- dplyr::filter(x, !ix)
-    charlier::info("deduplication removed %i records", nx = n - nrow(x))
+    charlier::info("deduplication removed %i records leaving %i records", nx = n - nrow(x), nrow(x))
   }
   
   
@@ -34,8 +36,8 @@ main = function(cfg){
   steps = ceiling(nrow(x)/cfg$tax_db$chunk)
   index = rep(seq_len(steps), each = cfg$tax_db$chunk, length = nrow(x))
   charlier::info("configuring %i steps of %i chunks", steps, cfg$tax_db$chunk)
-  lost = list()
-  r <- x[cfg$input$name] |>
+  lost = dplyr::tibble()
+  y <- x[cfg$input$name] |>
     dplyr::mutate(index_ = index) |>
     dplyr::group_by(index_) |>
     dplyr::group_map(
@@ -44,22 +46,31 @@ main = function(cfg){
         Sys.sleep(cfg$tax_db$sleep)
         r = try(taxizedb::classification(tbl[[1]], db=cfg$tax_db$db))
         if (!inherits(r, "try-error")){
-           r = r |>
+          if (length(r) != nrow(tbl)){
+            # all NA maybe?
+            lost = dplyr::bind_rows(lost, tbl)
+            r = NULL
+          } else {
+            r = r |>
               reform_classification() |>
               tabulate_classification()
+          }
         } else {
-          lost = append(lost, tbl)
+          lost = dplyr::bind_rows(lost, tbl)
           r = NULL
         } 
+        
         r
       }) |>
-    dplyr::bind_rows()|>  
-      readr::write_csv(file.path(cfg$output$path, sprintf("%s-taxa.csv.gz", cfg$input$name)))
+      dplyr::bind_rows()|>  
+      readr::write_csv(file.path(cfg$output$path, sprintf("%s-taxa.csv.gz", cfg$version)))
     
-    if (length(lost) > 0){
-      charlier::info("chunk %i lost", key$index_[1])
-      lost = dplyr::bind_rows(lost) |>
-        readr::write_csv(file.path(cfg$output$path, sprintf("%s-taxa-lost.csv.gz", cfg$input$name)))
+      charlier::info("classification yieled %i records a loss of %i", nrow(y), nrow(x)-nrow(y))
+    
+    
+    if (nrow(lost) > 0){
+      charlier::info("lost records: %i", nrow(lost))
+      lost = readr::write_csv(lost, file.path(cfg$output$path, sprintf("%s-taxa-lost.csv.gz", cfg$version)))
     }
   
   return(0)
@@ -68,7 +79,7 @@ main = function(cfg){
 
 source("setup.R")
 args = commandArgs(trailingOnly = TRUE)
-cfgfile = if (length(args) <= 0)  "input/taxizer.000.yaml" else args[1]
+cfgfile = if (length(args) <= 0)  "input/taxizer.001.yaml" else args[1]
 stopifnot(file.exists(cfgfile))
 cfg = yaml::read_yaml(cfgfile)
 if (!dir.exists(cfg$output$path)) ok = dir.create(cfg$output$path, recursive = TRUE)
@@ -81,5 +92,6 @@ db_tax_NCBI = taxizedb::db_download_ncbi(verbose = cfg$verbose,
 
 if (!interactive()){
   ok = main(cfg)
+  charlier::info("done")
   quit(save = "no", status = ok)
 }

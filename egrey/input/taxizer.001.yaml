@@ -1,0 +1,24 @@
+version: taxizer.001
+verbose: true
+input:
+  filename: input/MaineSpeciesListClean_May2024.csv
+  name: SpeciesBinomial
+  sentence_case: yes
+  deduplicate: yes
+  subsample: ~   # for development or ~ to use full list
+tax_db:
+  db: ncbi
+  overwrite: false
+  chunk: 100
+  sleep: 2
+  taxa:
+  - superkingdom
+  - kingdom
+  - phylum
+  - class
+  - order
+  - family
+  - genus
+  - species
+output:
+  path: data/taxa

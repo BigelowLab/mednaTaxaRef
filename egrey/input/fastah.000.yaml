@@ -1,0 +1,42 @@
+version: fastah.000
+verbose: true
+input:
+  filename: /mnt/storage/data/edna/mednaTaxaRef/egrey/data/taxa/taxizer.000-taxa.csv.gz
+  subsample: 100   # for development or ~ to use full list
+output:
+  path: data/fastah
+  width: 70
+  dump: yes
+  separate: yes
+restez:
+  dbpath: /mnt/storage/data/edna/refdb/restez
+  dbs:
+     - invertebrate
+     - plant
+     - vertebrate
+groupings:
+  plant:
+    dbname: plant
+    note: "any species in [Kingdom==Plantae]"
+    filter:
+      kingdom: 
+        - Plantae
+        - Viridiplantae
+  invertebrate:
+    dbname: invertebrate
+    note: "any species in [Kingdom==Metazoa and Class != Vertebrata]"
+    filter:
+      kingdom: Metazoa
+      class: -Vertebrata
+  vertebrate:
+     dbname: vertebrate
+     note: "any species in [Kingdom==Metazoa and Class == Vertebrata]"
+     filter:
+      kingdom: Metazoa
+      class: Vertebrata
+  other:
+    dbname: ~
+    note: "any species in [Kingdom != Metazoa and Kingdom != Plantae]"
+    filter:
+      kingdom: -Metazoa
+      kimgdom: -Plantae
